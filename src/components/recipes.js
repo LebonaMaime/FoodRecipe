@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
   },
   articleImage: {
     width: "100%",
-    aspectRatio: 1,
-    borderRadius: 35,
+    height: hp(26),
+    borderRadius: 24,
     backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
   articleText: {

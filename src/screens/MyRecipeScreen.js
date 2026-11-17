@@ -21,26 +21,66 @@ import {
     const [loading, setLoading] = useState(true);
   
     useEffect(() => {
+      let isMounted = true;
+
       const fetchrecipes = async () => {
-        
-        };
-  
+        setLoading(true);
+        try {
+          const storedRecipes = await AsyncStorage.getItem("customrecipes");
+          const parsedRecipes = storedRecipes ? JSON.parse(storedRecipes) : [];
+
+          if (!Array.isArray(parsedRecipes)) {
+            throw new Error('Stored "customrecipes" data must be an array.');
+          }
+
+          if (isMounted) {
+            setrecipes(parsedRecipes);
+          }
+        } catch (error) {
+          console.error("Failed to load custom recipes:", error);
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
+        }
+      };
+
       fetchrecipes();
-    }, []);
+      const unsubscribe = navigation.addListener("focus", fetchrecipes);
+
+      return () => {
+        isMounted = false;
+        unsubscribe();
+      };
+    }, [navigation]);
   
     const handleAddrecipe = () => {
-
+      navigation.navigate("RecipesFormScreen");
     };
   
     const handlerecipeClick = (recipe) => {
-
+      navigation.navigate("CustomRecipesScreen", { recipe });
     };
+
     const deleterecipe = async (index) => {
-    
+      try {
+        const updatedrecipes = [...recipes];
+        updatedrecipes.splice(index, 1);
+        await AsyncStorage.setItem(
+          "customrecipes",
+          JSON.stringify(updatedrecipes)
+        );
+        setrecipes(updatedrecipes);
+      } catch (error) {
+        console.error("Failed to delete recipe:", error);
+      }
     };
   
     const editrecipe = (recipe, index) => {
-
+      navigation.navigate("RecipesFormScreen", {
+        recipeToEdit: recipe,
+        recipeIndex: index,
+      });
     };
   
     return (
@@ -64,17 +104,37 @@ import {
               recipes.map((recipe, index) => (
                 <View key={index} style={styles.recipeCard} testID="recipeCard">
                   <TouchableOpacity testID="handlerecipeBtn" onPress={() => handlerecipeClick(recipe)}>
-                  
+                    {recipe.image ? (
+                      <Image
+                        source={{ uri: recipe.image }}
+                        style={styles.recipeImage}
+                        resizeMode="cover"
+                      />
+                    ) : null}
                     <Text style={styles.recipeTitle}>{recipe.title}</Text>
                     <Text style={styles.recipeDescription} testID="recipeDescp">
-                  
+                      {recipe.description
+                        ? recipe.description.length > 50
+                          ? `${recipe.description.slice(0, 50)}...`
+                          : recipe.description
+                        : ""}
                     </Text>
                   </TouchableOpacity>
   
                   {/* Edit and Delete Buttons */}
                   <View style={styles.actionButtonsContainer} testID="editDeleteButtons">
-                    
-                
+                    <TouchableOpacity
+                      onPress={() => editrecipe(recipe, index)}
+                      style={styles.editButton}
+                    >
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => deleterecipe(index)}
+                      style={styles.deleteButton}
+                    >
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))
@@ -100,12 +160,11 @@ import {
     },
     addButton: {
       backgroundColor: "#4F75FF",
-      padding: wp(.7),
+      padding: wp(2),
       alignItems: "center",
       borderRadius: 5,
-      width:300,
-     marginLeft:500
-      // marginBottom: hp(2),
+      width: "100%",
+      marginBottom: hp(2),
     },
     addButtonText: {
       color: "#fff",
@@ -114,12 +173,10 @@ import {
     },
     scrollContainer: {
       paddingBottom: hp(2),
-      height:'auto',
-      display:'flex',
-      alignItems:'center',
-      justifyContent:'center',
-      flexDirection:'row',
-      flexWrap:'wrap'
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexDirection: "row",
+      flexWrap: "wrap",
     },
     norecipesText: {
       textAlign: "center",
@@ -128,8 +185,8 @@ import {
       marginTop: hp(5),
     },
     recipeCard: {
-      width: 400, // Make recipe card width more compact
-      height: 300, // Adjust the height of the card to fit content
+      width: "100%",
+      maxWidth: 400,
       backgroundColor: "#fff",
       padding: wp(3),
       borderRadius: 8,
@@ -141,8 +198,8 @@ import {
       elevation: 3, // for Android shadow
     },
     recipeImage: {
-      width: 300, // Set width for recipe image
-      height: 150, // Adjust height of the image
+      width: "100%",
+      height: hp(20),
       borderRadius: 8,
       marginBottom: hp(1),
     },
@@ -164,9 +221,9 @@ import {
     },
     editButton: {
       backgroundColor: "#34D399",
-      padding: wp(.5),
+      padding: wp(2),
       borderRadius: 5,
-      width: 100, // Adjust width of buttons to be more compact
+      width: "48%",
       alignItems: "center",
     },
     editButtonText: {
@@ -176,9 +233,9 @@ import {
     },
     deleteButton: {
       backgroundColor: "#EF4444",
-      padding: wp(.5),
+      padding: wp(2),
       borderRadius: 5,
-      width: 100, // Adjust width of buttons to be more compact
+      width: "48%",
       alignItems: "center",
     },
     deleteButtonText: {

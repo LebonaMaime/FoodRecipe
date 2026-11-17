@@ -12,7 +12,39 @@ export default function RecipesFormScreen({ route, navigation }) {
   );
 
   const saverecipe = async () => {
- 
+    try {
+      const newrecipe = { title, image, description };
+      const storedRecipes = await AsyncStorage.getItem("customrecipes");
+      const recipes = storedRecipes ? JSON.parse(storedRecipes) : [];
+
+      if (!Array.isArray(recipes)) {
+        throw new Error('Stored "customrecipes" data must be an array.');
+      }
+
+      if (recipeToEdit) {
+        if (
+          !Number.isInteger(recipeIndex) ||
+          recipeIndex < 0 ||
+          recipeIndex >= recipes.length
+        ) {
+          throw new Error("Cannot update recipe: recipeIndex is invalid.");
+        }
+
+        recipes[recipeIndex] = { ...recipes[recipeIndex], ...newrecipe };
+      } else {
+        recipes.push(newrecipe);
+      }
+
+      await AsyncStorage.setItem("customrecipes", JSON.stringify(recipes));
+
+      if (recipeToEdit && typeof onrecipeEdited === "function") {
+        onrecipeEdited();
+      }
+
+      navigation.goBack();
+    } catch (error) {
+      console.error("Failed to save recipe:", error);
+    }
   };
 
   return (

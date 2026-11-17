@@ -20,15 +20,22 @@ import {
     const dispatch = useDispatch();
   
     const route = useRoute();
-    const { recipe } = route.params || {}; // Pass the  object as a parameter
-    console.log('recipe',recipe);
-    
-    const favoriteRecipe = useSelector(
-      (state) => state.favorites.favoriterecipes
+    const { recipe, index = 0 } = route.params || {};
+    const favoriteRecipes = useSelector(
+      (state) => state.favorites?.favoriterecipes ?? []
     );
-    console.log('favoriteRecipe from custom',favoriteRecipe);
-    
-    const isFavourite = favoriteRecipe.includes(recipe.idCategory); // Adjust this according to your recipe structure
+    const recipeId =
+      recipe?.idFood ??
+      recipe?.id ??
+      recipe?.idCategory ??
+      recipe?.title ??
+      recipe?.image;
+    const isFavourite = recipeId
+      ? favoriteRecipes.some(
+          (favoriteRecipe) =>
+            String(favoriteRecipe?.idFood) === String(recipeId)
+        )
+      : false;
   
     if (!recipe) {
       return (
@@ -39,45 +46,55 @@ import {
     }
   
     const handleToggleFavorite = () => {
-      dispatch(toggleFavorite(recipe)); // Adjust the action to handle recipe
+      dispatch(toggleFavorite({ ...recipe, idFood: recipeId }));
     };
   
     return (
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent} testID="scrollContent"
+        contentContainerStyle={styles.scrollContent}
+        testID="scrollContent"
       >
-        {/* Recipe Image */}
         <View style={styles.imageContainer} testID="imageContainer">
-        {recipe.image && (
-            <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+          {recipe.image ? (
+            <Image
+              source={{ uri: recipe.image }}
+              style={[
+                styles.articleImage,
+                { height: index % 3 === 0 ? hp(25) : hp(35) },
+              ]}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.articleImage, styles.imagePlaceholder]}>
+              <Text style={styles.imagePlaceholderText}>No image available</Text>
+            </View>
           )}
         </View>
-        <View
-          style={styles.topButtonsContainer} testID="topButtonsContainer"
-        >
+        <View style={styles.topButtonsContainer} testID="topButtonsContainer">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Text>Back</Text>
+            <Text style={styles.backButtonText}>GoBack</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleToggleFavorite}
             style={styles.favoriteButton}
           >
-            <Text>{isFavourite ? "♥" : "♡"}</Text>
+            <Text style={styles.favoriteButtonText}>
+              {isFavourite ? "♥" : "♡"}
+            </Text>
           </TouchableOpacity>
         </View>
   
-        {/* Recipe Details */}
         <View style={styles.contentContainer} testID="contentContainer">
-        <Text style={styles.recipeTitle}>{recipe.title}</Text>
-  <View style={styles.sectionContainer}>
-    <Text style={styles.sectionTitle}>Content</Text>
-    <Text style={styles.contentText}>{recipe.description}</Text>
-  </View>
+          <Text style={styles.recipeTitle}>{recipe.title}</Text>
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Content</Text>
+            <Text style={styles.contentText}>{recipe.description}</Text>
+          </View>
         </View>
       </ScrollView>
     );
@@ -85,66 +102,117 @@ import {
   
   const styles = StyleSheet.create({
     container: {
-      backgroundColor: "white",
       flex: 1,
+      backgroundColor: "#F8FAFC",
     },
     scrollContent: {
-      paddingBottom: 30,
+      paddingBottom: hp(4),
     },
     imageContainer: {
-      flexDirection: "row",
-      justifyContent: "center",
+      width: "100%",
+      backgroundColor: "#E2E8F0",
     },
-    recipeImage: {
-      width: wp(98),
-      height: hp(50),
-      borderRadius: 35,
-      borderBottomLeftRadius: 40,
-      borderBottomRightRadius: 40,
-      marginTop: 4,
+    articleImage: {
+      width: "100%",
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
+    },
+    imagePlaceholder: {
+      height: hp(30),
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    imagePlaceholderText: {
+      color: "#64748B",
+      fontSize: hp(2),
     },
     contentContainer: {
-      paddingHorizontal: wp(4),
-      paddingTop: hp(4),
+      paddingHorizontal: wp(5),
+      paddingTop: hp(3),
     },
     recipeTitle: {
-      fontSize: hp(3),
-      fontWeight: "bold",
-      color: "#4B5563",
-      marginBottom: hp(2),
+      fontSize: hp(3.2),
+      lineHeight: hp(4),
+      fontWeight: "700",
+      color: "#1F2937",
+      marginBottom: hp(2.5),
+      textAlign: "left",
     },
     sectionContainer: {
+      padding: wp(4),
       marginBottom: hp(2),
+      borderRadius: 16,
+      backgroundColor: "#FFFFFF",
+      shadowColor: "#0F172A",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 2,
     },
     sectionTitle: {
-      fontSize: hp(2.5),
-      fontWeight: "bold",
-      color: "#4B5563",
+      fontSize: hp(2.2),
+      fontWeight: "700",
+      color: "#374151",
       marginBottom: hp(1),
     },
     topButtonsContainer: {
-      width: "100%",
       position: "absolute",
+      top: hp(3),
+      left: wp(5),
+      right: wp(5),
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingTop: hp(4),
+      zIndex: 1,
     },
     backButton: {
-      padding: 8,
-      borderRadius: 50,
-      marginLeft: wp(5),
-      backgroundColor: "white",
+      minWidth: 68,
+      height: hp(5.5),
+      paddingHorizontal: wp(3),
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: hp(3),
+      backgroundColor: "#FFFFFF",
+      shadowColor: "#0F172A",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 5,
+      elevation: 4,
+    },
+    backButtonText: {
+      color: "#1F2937",
+      fontSize: hp(1.8),
+      fontWeight: "600",
     },
     favoriteButton: {
-      padding: 8,
-      borderRadius: 50,
-      marginRight: wp(5),
-      backgroundColor: "white",
+      width: hp(5.5),
+      height: hp(5.5),
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: hp(3),
+      backgroundColor: "#FFFFFF",
+      shadowColor: "#0F172A",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 5,
+      elevation: 4,
+    },
+    favoriteButtonText: {
+      color: "#EF4444",
+      fontSize: hp(3),
+      lineHeight: hp(3.5),
     },
     contentText: {
-      fontSize: hp(1.6),
+      fontSize: hp(1.9),
+      lineHeight: hp(2.8),
       color: "#4B5563",
+      textAlign: "left",
+    },
+    title: {
+      margin: wp(6),
+      fontSize: hp(2.5),
+      color: "#374151",
+      textAlign: "center",
     },
   });
   
